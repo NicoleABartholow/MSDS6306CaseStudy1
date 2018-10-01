@@ -1,0 +1,159 @@
+---
+title: "CS1NBartholowMSDS6306"
+author: "Nicole Bartholow"
+date: "9/30/2018"
+output: 
+  html_document:
+      keep_md:  true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(ggplot2)
+library(openintro)
+```
+
+
+##Read Data files into R 
+```{r read Breweries csv files into Breweries dataframe and read Beers csv into Beers dataframe}
+#Import Breweries.csv file into Breweries dataframe
+Breweries <- read.csv("/Users/nicolealphin/Desktop/DataScience/MSDS6306-DoingDataScience/HW/CaseStudy1/Breweries.csv", header=TRUE)
+#Import Beers.csv file into Beers dataframe
+Beers <- read.csv("/Users/nicolealphin/Desktop/DataScience/MSDS6306-DoingDataScience/HW/CaseStudy1/Beers.csv", header=TRUE)
+#clean up state abbr and add state names
+#trim leading white space from State Abbreviations
+Breweries$State<-trimws(Breweries$State)
+#add State Name from State Abbr for table - excludes DC
+Breweries$StateName <- state.name[match(Breweries$State,state.abb)]
+#assign State Name for Washington DC
+Breweries[is.na(Breweries)] <- "Washington DC" 
+#assign State as a factor to facilitate Summary Statistics
+Breweries$StateName <- as.factor(Breweries$StateName)
+```
+
+##How many Breweries are present in each state?
+```{r Brewery count per state}
+# Use summary to output number of Breweries in each state
+BreweryCount <- data.frame(summary(Breweries$StateName))
+#assign meaningful column name to Brewery Count for output
+colnames(BreweryCount)<- c("NumberOfBreweries")
+#write("Number of Breweries in Each State", file ="")
+BreweryCount
+
+###PROBABLY DELETE THIS - START######
+# Create a column of State Abbreviations
+#BreweryCount$States <- row.names(BreweryCount)
+# Trim leading white space from State Abbreviations
+#BreweryCount$States<-trimws(BreweryCount$States)
+#str(BreweryCount)  #verify State Abbr is 2 characters after trimming
+#Convert State Names to 
+#BreweryCount$StateName <- state.name[match(BreweryCount$States,state.abb)]
+#colnames(BreweryCount)<- c("Count","StateAbbr","StateName")
+
+# Present number of Breweries by State in a chart
+#<<-- barplot(BreweryCount$Count, 
+#        main = "Number of Breweries by State",
+#        horiz = TRUE, 
+#        beside = TRUE,
+#        xlab = "Number of Breweries", 
+#        las = 2,
+#        names.arg = BreweryCount$StateName,
+#        col = colmcolr,
+#        col.lab = "steelblue",
+#        space = 1,
+#        cex.names=0.5, 
+#        cex.axis = 0.75)
+
+####PROBABLY DELETE THIS - END########
+```
+
+#Merge Beers and Breweries dataframes on Brewery ID column
+```{r Merge Breweries and Beers dataframes by Brewery_ID}
+#Combine Breweries and Beers dataframes on their common column, Brewery_ID/Brew_ID
+BeerBreweries <- merge(x = Breweries, y = Beers, by.x=c("Brew_ID"), by.y =c("Brewery_id"), all=FALSE)
+#confirm number of rows remains constant from Beers to Beer Breweries to verify merge
+identical(nrow(Beers),nrow(BeerBreweries))
+#Update column names for clarification
+colnames(BeerBreweries) <- c("BreweryID","BreweryName","City","State","StateName","BeerName","BeerID","ABV","IBU","Style","Ounces")
+```
+
+
+#Which columns have NA data in the combined dataframe
+```{r get number of NAs in eacxh column}
+#Count the number of NAs in each column
+colSums(is.na(BeerBreweries))
+```
+## There are 62 beers missing the Alcohol by Volumne (ABV) measurement.
+## There are 1005 beers missing the International Bitterness Units (IBU) measurement.
+## There are no other missing data points in the dataframe
+
+
+#Question 4
+```{r}
+#create vectors of medians by state for measurements of interest ABV and IBU
+ABVMedians <- aggregate(ABV ~ StateName, data=BeerBreweries, median)
+IBUMedians <- aggregate(IBU ~ StateName, data=BeerBreweries, median)
+#Merge vectors by state name for bar chart
+IBUABV <- merge(x=ABVMedians,y=IBUMedians, by="StateName")
+colnames(IBUABV) <- c("StateName","MedianABVPC","MedianIBU")
+IBUABV$MedianABVPC <- (IBUABV$MedianABVPC*100)
+#Stacked Bar Chart
+bartable = table(IBUABV$MedianABVPC, IBUABV$MedianIBU)  ## get the cross tab
+barplot(IBUABV$MedianABVPC, 
+        main = "Number of Breweries by State",
+        horiz = TRUE, 
+        beside = TRUE,
+        xlab = "Number of Breweries", 
+        ylab = "States",
+        las = 2,
+        names.arg = IBUABV$StateName,
+        space = 1,
+        cex.names=0.5, 
+        cex.axis = 0.75)
+#       legend = levels(unique(IBUABV$MedianABVPC))) 
+```
+
+#Which states produce the most alcoholic beer?  Which states produce the most bitter beer?
+```{r}
+#convert column state name to character for which.max
+#get the state with the highest median IBU and ABV
+IBUABV$StateName <- as.character(IBUABV$StateName)
+StateMaxMedABV <- IBUABV$StateName[which.max(IBUABV$MedianABVPC)]
+StateMaxMedIBU <- IBUABV$StateName[which.max(IBUABV$MedianIBU)]
+#convert state name column to character for which.max
+#get the state that produces the beers with the highest individual IBU and ABV
+BeerBreweries$StateName <- as.character(BeerBreweries$StateName)
+StateMaxABV <- BeerBreweries$StateName[which.max(BeerBreweries$ABV)]
+StateMaxIBU <- BeerBreweries$StateName[which.max(BeerBreweries$IBU)]
+```
+##The state that produces the beer with the single highest alcohol content is Colorado.  
+##The states with the highest median ABV beers are Kentucky and Washington DC. 
+##The state that produces the bitterest single beer is Oregon.
+##The state that produces the highest median IBU beers is Maine.
+
+#Summary Statistics for Alcohol by Volume (ABV)
+```{r}
+#summary statistics for ABV Alcohol by Volume
+summary(BeerBreweries$ABV)
+```
+##Beers in our study range in ABV from 0.1% to 12.8%, with 75% of beers falling between 5% and 6.7%.  The median ABV for the beers in our study is 5.6%.
+
+
+#Question 7
+```{r}
+plot(Beers$ABV, Beers$IBU)
+
+
+```
+
+
+
+## Upload to Github 
+###a. Push at minimum your RMarkdown for this homework assignment and a Codebook to one of your GitHub repositories (you might place this in a Homework repo like last week).  The Codebook should contain a short definition of each object you create, and if creating multiple files, which file it is contained in.  You are welcome and encouraged to add other files—just make sure you have a description and directions that are helpful for the grader.
+### I looked up several codebooks, and wasn't sure if I should also describe the input files, the intermediate objects, etc. I appreciate any and all feedback!
+
+###https://github.com/NicoleABartholow/MSDS6306CaseStudy1
+
+
+
