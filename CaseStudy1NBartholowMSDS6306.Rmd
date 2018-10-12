@@ -12,12 +12,14 @@ knitr::opts_chunk$set(echo = TRUE)
 library(dplyr)
 library(ggplot2)
 library(openintro)
+library(reshape2)
+library(maps)
 ```
 
 
 ##Read Data files into R 
 ```{r read Breweries csv files into Breweries dataframe and read Beers csv into Beers dataframe}
-#Import Breweries.csv file into Breweries dataframe
+#Import Breweries.csv file into Breweries dataframe - CHANGE FOR GitHub
 Breweries <- read.csv("/Users/nicolealphin/Desktop/DataScience/MSDS6306-DoingDataScience/HW/CaseStudy1/Breweries.csv", header=TRUE)
 #Import Beers.csv file into Beers dataframe
 Beers <- read.csv("/Users/nicolealphin/Desktop/DataScience/MSDS6306-DoingDataScience/HW/CaseStudy1/Beers.csv", header=TRUE)
@@ -35,11 +37,37 @@ Breweries$StateName <- as.factor(Breweries$StateName)
 ##How many Breweries are present in each state?
 ```{r Brewery count per state}
 # Use summary to output number of Breweries in each state
-BreweryCount <- data.frame(summary(Breweries$StateName))
+BreweryCount <- data.frame(sort(table(Breweries$StateName), decreasing=TRUE))
 #assign meaningful column name to Brewery Count for output
-colnames(BreweryCount)<- c("NumberOfBreweries")
+colnames(BreweryCount)<- c("State", "NumberOfBreweries")
 #write("Number of Breweries in Each State", file ="")
 BreweryCount
+
+
+#Heat Map Production
+#set states to lower case
+BreweryCount$region <- tolower(BreweryCount$State)
+BreweryCountGeo <- merge(states, BreweryCount, by="region")
+qplot(long, lat, data=BreweryCountGeo, geom="polygon", fill=NumberOfBreweries, group=group)
+# We'll use the state.center list to tell us where exactly
+# the center of the state is.
+snames <- data.frame(region=tolower(state.name), long=state.center$x, lat=state.center$y)
+# Then again, we need to join our original dataset 
+# to get the value that should be printed at the center.
+snames <- merge(snames, BreweryCount, by="region")
+# And finally, to put everything together: 
+map1 <- ggplot(BreweryCountGeo, aes(long, lat)) + geom_polygon(aes(group=group, fill=NumberOfBreweries)) + geom_text(data=snames, aes(long, lat, label=NumberOfBreweries))
+map1
+#End of first heat map
+
+map2 <- map1 + scale_fill_continuous(low="lightskyblue", high="royalblue", guide="colorbar") + theme_bw() + labs(title = "Number of Breweries in Each State", fill = "Count", x="", y="")
+map2
+
+#map3 <- map2 + scale_linetype_continuous(breaks=c()) + scale_x_continuous(breaks = c()) + theme (panel.border = element_blank())
+
+
+
+
 
 ###PROBABLY DELETE THIS - START######
 # Create a column of State Abbreviations
@@ -92,8 +120,8 @@ colSums(is.na(BeerBreweries))
 #Question 4
 ```{r}
 #create vectors of medians by state for measurements of interest ABV and IBU
-ABVMedians <- aggregate(ABV ~ StateName, data=BeerBreweries, median)
-IBUMedians <- aggregate(IBU ~ StateName, data=BeerBreweries, median)
+ABVMedians <- aggregate(BeerBreweries$ABV ~ BeerBreweries$StateName, data=BeerBreweries, median)
+IBUMedians <- aggregate(BeerBreweries$IBU ~ BeerBreweries$StateName, data=BeerBreweries, median)
 #Merge vectors by state name for bar chart
 IBUABV <- merge(x=ABVMedians,y=IBUMedians, by="StateName")
 colnames(IBUABV) <- c("StateName","MedianABVPC","MedianIBU")
@@ -101,10 +129,10 @@ IBUABV$MedianABVPC <- (IBUABV$MedianABVPC*100)
 #Stacked Bar Chart
 bartable = table(IBUABV$MedianABVPC, IBUABV$MedianIBU)  ## get the cross tab
 barplot(IBUABV$MedianABVPC, 
-        main = "Number of Breweries by State",
+        main = "Median Beer Alcohol By Volume by State",
         horiz = TRUE, 
         beside = TRUE,
-        xlab = "Number of Breweries", 
+        xlab = "Median ABV", 
         ylab = "States",
         las = 2,
         names.arg = IBUABV$StateName,
@@ -112,6 +140,36 @@ barplot(IBUABV$MedianABVPC,
         cex.names=0.5, 
         cex.axis = 0.75)
 #       legend = levels(unique(IBUABV$MedianABVPC))) 
+barplot(IBUABV$MedianIBU, 
+        main = "Median IBU by State",
+        horiz = TRUE, 
+        beside = TRUE,
+        xlab = "Median IBU", 
+        ylab = "States",
+        las = 2,
+        names.arg = IBUABV$StateName,
+        space = 1,
+        cex.names=0.5, 
+        cex.axis = 0.75)
+
+IBUABV<-IBUABV[,2:length(IBUABV )]
+
+IBUABV.long<-melt(IBUABV,id.vars="StateName")
+
+ggplot(IBUABV,aes(x=IBUABV$StateName,y=value,fill=factor(gender)))+
+  geom_bar(stat="identity",position="dodge")+
+  scale_fill_discrete(name="Gender",
+                      breaks=c(1, 2),
+                      labels=c("Male", "Female"))+
+  xlab("Beverage")+ylab("Mean Percentage")
+
+
+ggplot(means.long,aes(x=variable,y=value,fill=factor(gender)))+
+  geom_bar(stat="identity",position="dodge")+
+  scale_fill_discrete(name="Gender",
+                      breaks=c(1, 2),
+                      labels=c("Male", "Female"))+
+  xlab("Beverage")+ylab("Mean Percentage")
 ```
 
 #Which states produce the most alcoholic beer?  Which states produce the most bitter beer?
