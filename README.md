@@ -1,5 +1,9 @@
 # MSDS6306CaseStudy1
 Background information on this case study and my assumptions can be found in MSDS6306BartholowCaseStudy1Background in the root directory of the Github for this project.
+Presentation folder includes Primary output PDF, Powerpoint slides with a link to Youtube video of the slides with voiceover presentation
+Analysis Folder contains Rmarkdown file and the Data folder
+Data folder contains the Breweries.csv and Beers.csv provided for this project
+
 Below is the session info for reproducibility.
 
 DDS Case Study 1 Repository
