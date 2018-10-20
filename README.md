@@ -1,4 +1,7 @@
 # MSDS6306CaseStudy1
+Background information on this case study and my assumptions can be found in MSDS6306BartholowCaseStudy1Background in the root directory of the Github for this project.
+Below is the session info for reproducibility.
+
 DDS Case Study 1 Repository
 
 R version 3.5.0 (2018-04-23)
